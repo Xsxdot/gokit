@@ -3,8 +3,9 @@ package logger
 import (
 	"context"
 	"encoding/json"
-	"gokit/consts"
 	"sync"
+
+	consts "github.com/xsxdot/gokit/consts"
 
 	uuid "github.com/google/uuid"
 	"github.com/openzipkin/zipkin-go"

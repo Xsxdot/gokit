@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"gokit/config"
+	config "github.com/xsxdot/gokit/config"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

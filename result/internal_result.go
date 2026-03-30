@@ -1,8 +1,9 @@
 package result
 
 import (
-	errorc "gokit/err"
-	"gokit/utils"
+	"github.com/xsxdot/gokit/utils"
+
+	errorc "github.com/xsxdot/gokit/err"
 
 	"github.com/gofiber/fiber/v2"
 )

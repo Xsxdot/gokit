@@ -2,8 +2,9 @@ package loghook
 
 import (
 	"fmt"
-	"gokit/config"
 	"time"
+
+	config "github.com/xsxdot/gokit/config"
 
 	sls "github.com/aliyun/aliyun-log-go-sdk"
 	"github.com/gogo/protobuf/proto"

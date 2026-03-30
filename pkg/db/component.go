@@ -3,9 +3,9 @@ package db
 import (
 	"context"
 
-	"gokit/config"
-	"gokit/pkg/mysql"
-	"gokit/pkg/pg"
+	config "github.com/xsxdot/gokit/config"
+	"github.com/xsxdot/gokit/pkg/mysql"
+	"github.com/xsxdot/gokit/pkg/pg"
 
 	"gorm.io/gorm"
 )

@@ -2,7 +2,8 @@ package utils
 
 import (
 	"context"
-	"gokit/consts"
+
+	consts "github.com/xsxdot/gokit/consts"
 
 	"github.com/gofiber/fiber/v2"
 	uuid "github.com/google/uuid"

@@ -2,7 +2,8 @@ package tracer
 
 import (
 	"context"
-	"gokit/consts"
+
+	consts "github.com/xsxdot/gokit/consts"
 
 	uuid "github.com/google/uuid"
 )

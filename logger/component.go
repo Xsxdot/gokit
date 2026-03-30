@@ -3,7 +3,7 @@ package logger
 import (
 	"context"
 
-	"gokit/config"
+	config "github.com/xsxdot/gokit/config"
 )
 
 type LoggerComponent struct {

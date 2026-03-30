@@ -2,8 +2,9 @@ package oss
 
 import (
 	"context"
-	"gokit/config"
-	"gokit/logger"
+
+	"github.com/xsxdot/gokit/config"
+	"github.com/xsxdot/gokit/logger"
 )
 
 // InitAliyunOSS 初始化阿里云OSS服务

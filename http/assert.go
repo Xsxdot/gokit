@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	errorc "gokit/err"
+	errorc "github.com/xsxdot/gokit/err"
 )
 
 var errBuilder = errorc.NewErrorBuilder("HttpClient")

@@ -6,8 +6,8 @@ import (
 	"net"
 	"time"
 
-	"gokit/config"
-	"gokit/pkg/proxy"
+	config "github.com/xsxdot/gokit/config"
+	"github.com/xsxdot/gokit/pkg/proxy"
 
 	mysqldriver "github.com/go-sql-driver/mysql"
 	"gorm.io/driver/mysql"

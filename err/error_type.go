@@ -38,7 +38,7 @@ func (e *Error) formatStack() string {
 			continue
 		}
 		// 跳过错误包内部的调用
-		if strings.Contains(line, "gokit/core/err.") || strings.Contains(line, "gokit/core/err/error.go") {
+		if strings.Contains(line, "github.com/xsxdot/gokit/core/err.") || strings.Contains(line, "github.com/xsxdot/gokit/core/err/error.go") {
 			continue
 		}
 		filteredLines = append(filteredLines, line)

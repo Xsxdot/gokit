@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	gohttp "gokit/http"
+	gohttp "github.com/xsxdot/gokit/http"
 )
 
 // ---- helpers ----------------------------------------------------------------

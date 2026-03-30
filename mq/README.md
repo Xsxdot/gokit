@@ -22,7 +22,7 @@
 ### 1. 引入包
 
 ```go
-import "gokit/mq"
+import "github.com/xsxdot/gokit/mq"
 ```
 
 ### 2. 初始化生产者

@@ -3,7 +3,7 @@ package redis
 import (
 	"context"
 
-	"gokit/config"
+	"github.com/xsxdot/gokit/config"
 
 	"github.com/redis/go-redis/v9"
 )

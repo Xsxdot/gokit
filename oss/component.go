@@ -3,7 +3,7 @@ package oss
 import (
 	"context"
 
-	"gokit/config"
+	"github.com/xsxdot/gokit/config"
 )
 
 type OSSComponent struct {

@@ -2,7 +2,8 @@ package fiber_handle
 
 import (
 	"errors"
-	errorc "gokit/err"
+
+	errorc "github.com/xsxdot/gokit/err"
 
 	"github.com/gofiber/fiber/v2"
 )

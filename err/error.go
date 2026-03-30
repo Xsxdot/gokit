@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gokit/consts"
 	"strings"
 	"sync"
+
+	"github.com/xsxdot/gokit/consts"
 
 	"github.com/sirupsen/logrus"
 

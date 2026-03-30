@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 
-	"gokit/config"
+	config "github.com/xsxdot/gokit/config"
 
 	"go.uber.org/zap"
 )

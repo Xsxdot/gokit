@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"gokit/config"
+	"github.com/xsxdot/gokit/config"
 )
 
 type AdminAuthComponent struct {

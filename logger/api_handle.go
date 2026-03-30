@@ -2,9 +2,10 @@ package logger
 
 import (
 	"fmt"
-	errorc "gokit/err"
 	"strings"
 	"time"
+
+	errorc "github.com/xsxdot/gokit/err"
 
 	"github.com/gofiber/fiber/v2"
 )

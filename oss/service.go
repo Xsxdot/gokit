@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"gokit/config"
-	errorc "gokit/err"
-	"gokit/logger"
+	config "github.com/xsxdot/gokit/config"
+	errorc "github.com/xsxdot/gokit/err"
+	logger "github.com/xsxdot/gokit/logger"
 
 	"github.com/gofiber/fiber/v2"
 

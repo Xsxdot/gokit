@@ -3,7 +3,7 @@ package security
 import (
 	"context"
 
-	"gokit/config"
+	"github.com/xsxdot/gokit/config"
 )
 
 type ClientAuthComponent struct {

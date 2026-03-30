@@ -2,9 +2,10 @@ package fiber_handle
 
 import (
 	"context"
-	"gokit/consts"
-	"gokit/tracer"
 	"strings"
+
+	consts "github.com/xsxdot/gokit/consts"
+	tracer "github.com/xsxdot/gokit/tracer"
 
 	"github.com/gofiber/fiber/v2"
 )

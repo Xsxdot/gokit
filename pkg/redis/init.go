@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"gokit/config"
-	"gokit/pkg/proxy"
+	"github.com/xsxdot/gokit/config"
+
+	"github.com/xsxdot/gokit/pkg/proxy"
 
 	"github.com/go-redis/cache/v9"
 	"github.com/redis/go-redis/v9"

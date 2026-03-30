@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	errorc "gokit/err"
+	errorc "github.com/xsxdot/gokit/err"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"

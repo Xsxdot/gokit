@@ -3,7 +3,8 @@ package mvc
 import (
 	"context"
 	"fmt"
-	errorc "gokit/err"
+
+	errorc "github.com/xsxdot/gokit/err"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"

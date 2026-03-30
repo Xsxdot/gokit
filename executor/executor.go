@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"gokit/logger"
+	logger "github.com/xsxdot/gokit/logger"
 )
 
 // Executor 后台任务执行器（单 worker 顺序执行）

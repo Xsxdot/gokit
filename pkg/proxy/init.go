@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"gokit/config"
+	config "github.com/xsxdot/gokit/config"
 
 	"golang.org/x/net/proxy"
 )
