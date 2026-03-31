@@ -9,12 +9,12 @@ import (
 type OSSComponent struct {
 	key    string
 	config config.OssConfig
-	entity *AliyunService
+	entity **AliyunService
 }
 
 // NewOSSComponent 创建 OSS 组件
-func NewOSSComponent(key string) *OSSComponent {
-	return &OSSComponent{key: key}
+func NewOSSComponent(key string, entity **AliyunService) *OSSComponent {
+	return &OSSComponent{key: key, entity: entity}
 }
 
 func (c *OSSComponent) Name() string      { return "oss" }
@@ -27,7 +27,7 @@ func (c *OSSComponent) Start(ctx context.Context, cfg any) error {
 	if err != nil {
 		return err
 	}
-	c.entity = service
+	*c.entity = service
 	return nil
 }
 func (c *OSSComponent) Stop() error { return nil }

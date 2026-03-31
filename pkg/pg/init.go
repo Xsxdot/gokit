@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -36,4 +37,36 @@ func InitPg(database config.Database) (*gorm.DB, error) {
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	return db, nil
+}
+
+type DBComponent struct {
+	key      string
+	config   config.Database
+	proxyCfg *config.ProxyConfig
+	entity   **gorm.DB
+}
+
+// NewDBComponent 创建数据库组件
+func NewDBComponent(key string, entity **gorm.DB) *DBComponent {
+	return &DBComponent{key: key, entity: entity}
+}
+
+func (c *DBComponent) Name() string      { return "database" }
+func (c *DBComponent) ConfigKey() string { return c.key }
+func (c *DBComponent) ConfigPtr() any    { return &c.config }
+func (c *DBComponent) EntityPtr() any    { return c.entity }
+func (c *DBComponent) Start(ctx context.Context, cfg any) error {
+	dbCfg := cfg.(*config.Database)
+	var err error
+
+	entity, err := InitPg(*dbCfg)
+	*c.entity = entity
+	return err
+}
+func (c *DBComponent) Stop() error {
+	if c.entity != nil {
+		sqlDB, _ := (*c.entity).DB()
+		return sqlDB.Close()
+	}
+	return nil
 }

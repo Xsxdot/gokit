@@ -1,8 +1,7 @@
-package mq
+package rocketmq
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -10,19 +9,20 @@ import (
 	"github.com/apache/rocketmq-client-go/v2"
 	"github.com/apache/rocketmq-client-go/v2/consumer"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
+	"github.com/xsxdot/gokit/mq"
 )
 
-type rocketMQSubscription struct {
+type rocketSubscription struct {
 	topic   string
 	group   string
-	mode    ConsumeMode
-	handler Handler
+	mode    mq.ConsumeMode
+	handler mq.Handler
 }
 
-// rocketMQConsumer RocketMQ 消费者实现
-type rocketMQConsumer struct {
-	cfg       *RocketConfig
-	subs      []*rocketMQSubscription
+// rocketConsumer RocketMQ 消费者实现
+type rocketConsumer struct {
+	cfg       *Config
+	subs      []*rocketSubscription
 	consumers []rocketmq.PushConsumer
 	started   bool
 	closed    bool
@@ -30,22 +30,23 @@ type rocketMQConsumer struct {
 }
 
 // 编译时检查接口实现
-var _ Consumer = (*rocketMQConsumer)(nil)
+var _ mq.Consumer = (*rocketConsumer)(nil)
 
-func newRocketMQConsumer(cfg *RocketConfig) (*rocketMQConsumer, error) {
-	return &rocketMQConsumer{
+// NewConsumer 创建 RocketMQ 消费者
+func NewConsumer(cfg *Config) (mq.Consumer, error) {
+	return &rocketConsumer{
 		cfg: cfg,
 	}, nil
 }
 
 // Subscribe 注册主题订阅，需在 Start 前调用
-func (c *rocketMQConsumer) Subscribe(topic string, group string, mode ConsumeMode, handler Handler) error {
+func (c *rocketConsumer) Subscribe(topic string, group string, mode mq.ConsumeMode, handler mq.Handler) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.started {
-		return ErrAlreadyStarted
+		return mq.ErrAlreadyStarted
 	}
-	c.subs = append(c.subs, &rocketMQSubscription{
+	c.subs = append(c.subs, &rocketSubscription{
 		topic:   topic,
 		group:   group,
 		mode:    mode,
@@ -55,14 +56,14 @@ func (c *rocketMQConsumer) Subscribe(topic string, group string, mode ConsumeMod
 }
 
 // Start 启动所有 push consumer
-func (c *rocketMQConsumer) Start() error {
+func (c *rocketConsumer) Start() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.started {
-		return ErrAlreadyStarted
+		return mq.ErrAlreadyStarted
 	}
 	if len(c.subs) == 0 {
-		return ErrNoSubscription
+		return mq.ErrNoSubscription
 	}
 	c.started = true
 
@@ -74,7 +75,7 @@ func (c *rocketMQConsumer) Start() error {
 	for _, sub := range c.subs {
 		// 根据消费模式选择 MessageModel
 		var model consumer.MessageModel
-		if sub.mode == ConsumeModeBroadcast {
+		if sub.mode == mq.ConsumeModeBroadcast {
 			model = consumer.BroadCasting
 		} else {
 			model = consumer.Clustering
@@ -111,7 +112,7 @@ func (c *rocketMQConsumer) Start() error {
 			for _, ext := range msgs {
 				msg := parseRocketMQMessage(ext)
 				result := handler(ctx, msg)
-				if result == ConsumeRetry {
+				if result == mq.ConsumeRetry {
 					return consumer.ConsumeRetryLater, nil
 				}
 			}
@@ -134,17 +135,17 @@ func (c *rocketMQConsumer) Start() error {
 }
 
 // Close 关闭所有消费者
-func (c *rocketMQConsumer) Close() error {
+func (c *rocketConsumer) Close() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.closed {
-		return ErrAlreadyClosed
+		return mq.ErrAlreadyClosed
 	}
 	c.closed = true
 	return c.shutdownAll()
 }
 
-func (c *rocketMQConsumer) shutdownAll() error {
+func (c *rocketConsumer) shutdownAll() error {
 	var lastErr error
 	for _, pc := range c.consumers {
 		if err := pc.Shutdown(); err != nil {
@@ -153,26 +154,4 @@ func (c *rocketMQConsumer) shutdownAll() error {
 	}
 	c.consumers = nil
 	return lastErr
-}
-
-// parseRocketMQMessage 将 RocketMQ 消息解析为统一 Message
-func parseRocketMQMessage(ext *primitive.MessageExt) *Message {
-	msg := &Message{
-		Topic: ext.Topic,
-		Body:  ext.Body,
-		ID:    ext.MsgId,
-	}
-	if keys := ext.GetKeys(); keys != "" {
-		msg.Key = keys
-	}
-
-	// 尝试解析自定义属性
-	if propsStr := ext.GetProperty("mq_properties"); propsStr != "" {
-		var props map[string]string
-		if err := json.Unmarshal([]byte(propsStr), &props); err == nil {
-			msg.Properties = props
-		}
-	}
-
-	return msg
 }

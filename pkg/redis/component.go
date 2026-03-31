@@ -12,12 +12,12 @@ type RDBComponent struct {
 	key      string
 	config   config.RedisConfig
 	proxyCfg *config.ProxyConfig
-	entity   *redis.Client
+	entity   **redis.Client
 }
 
 // NewRDBComponent 创建 Redis 组件
-func NewRDBComponent(key string) *RDBComponent {
-	return &RDBComponent{key: key}
+func NewRDBComponent(key string, entity **redis.Client) *RDBComponent {
+	return &RDBComponent{key: key, entity: entity}
 }
 
 // WithProxy 设置代理配置（可选）
@@ -36,12 +36,13 @@ func (c *RDBComponent) Start(ctx context.Context, cfg any) error {
 	if c.proxyCfg != nil {
 		proxyCfg = *c.proxyCfg
 	}
-	c.entity = InitRDB(*redisCfg, proxyCfg)
+	entity := InitRDB(*redisCfg, proxyCfg)
+	*c.entity = entity
 	return nil
 }
 func (c *RDBComponent) Stop() error {
 	if c.entity != nil {
-		return c.entity.Close()
+		return (*c.entity).Close()
 	}
 	return nil
 }

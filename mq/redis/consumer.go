@@ -1,58 +1,47 @@
-package mq
+package redis
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/xsxdot/gokit/mq"
 )
 
 const (
-	defaultBlockTimeout       = 5 * time.Second
+	defaultBlockTimeout         = 5 * time.Second
 	defaultPendingRetryInterval = 30 * time.Second
 )
 
 type subscription struct {
 	topic   string
 	group   string
-	mode    ConsumeMode
-	handler Handler
+	mode    mq.ConsumeMode
+	handler mq.Handler
 }
 
-// redisConsumer Redis Stream 消费者实现
-type redisConsumer struct {
-	client              *redis.Client
-	blockTimeout        time.Duration
+// consumer Redis Stream 消费者实现
+type consumer struct {
+	client               *redis.Client
+	blockTimeout         time.Duration
 	pendingRetryInterval time.Duration
-	managed             bool // true 表示 client 是由 mq 创建的，Close 时需要释放
-	subs                []*subscription
-	started             bool
-	closed              bool
-	mu                  sync.Mutex
-	stopCh              chan struct{}
-	wg                  sync.WaitGroup
+	subs                 []*subscription
+	started              bool
+	closed               bool
+	mu                   sync.Mutex
+	stopCh               chan struct{}
+	wg                   sync.WaitGroup
 }
 
 // 编译时检查接口实现
-var _ Consumer = (*redisConsumer)(nil)
+var _ mq.Consumer = (*consumer)(nil)
 
-func newRedisConsumer(cfg *RedisConfig) (*redisConsumer, error) {
-	var client *redis.Client
-	var managed bool
-
-	if cfg.Client != nil {
-		client = cfg.Client
-		managed = false
-	} else {
-		client = redis.NewClient(&redis.Options{
-			Addr:     cfg.Addr,
-			Password: cfg.Password,
-			DB:       cfg.DB,
-		})
-		managed = true
+// NewConsumer 创建 Redis 消费者
+func NewConsumer(cfg *Config) (mq.Consumer, error) {
+	if cfg.Client == nil {
+		return nil, fmt.Errorf("redis-mq: Client is required in config")
 	}
 
 	blockTimeout := defaultBlockTimeout
@@ -65,21 +54,20 @@ func newRedisConsumer(cfg *RedisConfig) (*redisConsumer, error) {
 		pendingRetry = time.Duration(cfg.PendingRetryIntervalSec) * time.Second
 	}
 
-	return &redisConsumer{
-		client:              client,
-		blockTimeout:        blockTimeout,
+	return &consumer{
+		client:               cfg.Client,
+		blockTimeout:         blockTimeout,
 		pendingRetryInterval: pendingRetry,
-		managed:             managed,
-		stopCh:              make(chan struct{}),
+		stopCh:               make(chan struct{}),
 	}, nil
 }
 
 // Subscribe 注册主题订阅，需在 Start 前调用
-func (c *redisConsumer) Subscribe(topic string, group string, mode ConsumeMode, handler Handler) error {
+func (c *consumer) Subscribe(topic string, group string, mode mq.ConsumeMode, handler mq.Handler) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.started {
-		return ErrAlreadyStarted
+		return mq.ErrAlreadyStarted
 	}
 	c.subs = append(c.subs, &subscription{
 		topic:   topic,
@@ -91,21 +79,21 @@ func (c *redisConsumer) Subscribe(topic string, group string, mode ConsumeMode, 
 }
 
 // Start 启动消费者
-func (c *redisConsumer) Start() error {
+func (c *consumer) Start() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.started {
-		return ErrAlreadyStarted
+		return mq.ErrAlreadyStarted
 	}
 	if len(c.subs) == 0 {
-		return ErrNoSubscription
+		return mq.ErrNoSubscription
 	}
 	c.started = true
 
 	// 为每个订阅创建对应的消费协程
 	ctx := context.Background()
 	for _, sub := range c.subs {
-		if sub.mode == ConsumeModeBroadcast {
+		if sub.mode == mq.ConsumeModeBroadcast {
 			// 广播模式：不使用 consumer group，每个消费者独立消费
 			c.wg.Add(1)
 			go c.broadcastConsumeLoop(sub)
@@ -122,24 +110,21 @@ func (c *redisConsumer) Start() error {
 }
 
 // Close 关闭消费者
-func (c *redisConsumer) Close() error {
+func (c *consumer) Close() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.closed {
-		return ErrAlreadyClosed
+		return mq.ErrAlreadyClosed
 	}
 	c.closed = true
 	close(c.stopCh)
 	c.wg.Wait()
-
-	if c.managed {
-		return c.client.Close()
-	}
+	// 不关闭 client，由用户自行管理
 	return nil
 }
 
 // consumeLoop 消费循环：XREADGROUP 拉取新消息
-func (c *redisConsumer) consumeLoop(sub *subscription) {
+func (c *consumer) consumeLoop(sub *subscription) {
 	defer c.wg.Done()
 
 	consumerName := fmt.Sprintf("consumer-%d", time.Now().UnixNano())
@@ -175,7 +160,7 @@ func (c *redisConsumer) consumeLoop(sub *subscription) {
 			for _, xMsg := range stream.Messages {
 				msg := parseRedisMessage(sub.topic, xMsg)
 				result := sub.handler(context.Background(), msg)
-				if result == ConsumeSuccess {
+				if result == mq.ConsumeSuccess {
 					c.client.XAck(context.Background(), sub.topic, sub.group, xMsg.ID)
 				}
 				// ConsumeRetry: 不 ACK，消息将在 pending 列表中等待重试
@@ -185,7 +170,7 @@ func (c *redisConsumer) consumeLoop(sub *subscription) {
 }
 
 // reclaimPendingLoop 定期处理 pending 中的超时消息
-func (c *redisConsumer) reclaimPendingLoop(sub *subscription) {
+func (c *consumer) reclaimPendingLoop(sub *subscription) {
 	defer c.wg.Done()
 
 	ticker := time.NewTicker(c.pendingRetryInterval)
@@ -202,7 +187,7 @@ func (c *redisConsumer) reclaimPendingLoop(sub *subscription) {
 }
 
 // processPending 处理超时的 pending 消息
-func (c *redisConsumer) processPending(sub *subscription) {
+func (c *consumer) processPending(sub *subscription) {
 	ctx := context.Background()
 
 	// 获取 pending 列表中的消息
@@ -241,14 +226,14 @@ func (c *redisConsumer) processPending(sub *subscription) {
 	for _, xMsg := range messages {
 		msg := parseRedisMessage(sub.topic, xMsg)
 		result := sub.handler(ctx, msg)
-		if result == ConsumeSuccess {
+		if result == mq.ConsumeSuccess {
 			c.client.XAck(ctx, sub.topic, sub.group, xMsg.ID)
 		}
 	}
 }
 
 // broadcastConsumeLoop 广播消费循环：XREAD 拉取消息，每个消费者独立维护消费位置
-func (c *redisConsumer) broadcastConsumeLoop(sub *subscription) {
+func (c *consumer) broadcastConsumeLoop(sub *subscription) {
 	defer c.wg.Done()
 
 	ctx := context.Background()
@@ -297,33 +282,4 @@ func (c *redisConsumer) broadcastConsumeLoop(sub *subscription) {
 			}
 		}
 	}
-}
-
-// parseRedisMessage 将 Redis Stream 消息解析为 Message
-func parseRedisMessage(topic string, xMsg redis.XMessage) *Message {
-	msg := &Message{
-		Topic: topic,
-		ID:    xMsg.ID,
-	}
-
-	if body, ok := xMsg.Values["body"]; ok {
-		if s, ok := body.(string); ok {
-			msg.Body = []byte(s)
-		}
-	}
-	if key, ok := xMsg.Values["key"]; ok {
-		if s, ok := key.(string); ok {
-			msg.Key = s
-		}
-	}
-	if props, ok := xMsg.Values["properties"]; ok {
-		if s, ok := props.(string); ok {
-			var properties map[string]string
-			if err := json.Unmarshal([]byte(s), &properties); err == nil {
-				msg.Properties = properties
-			}
-		}
-	}
-
-	return msg
 }

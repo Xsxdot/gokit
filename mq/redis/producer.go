@@ -1,4 +1,4 @@
-package mq
+package redis
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"github.com/xsxdot/gokit/mq"
 )
 
 const (
@@ -17,12 +18,11 @@ const (
 	delayZSetSuffix          = ":mq:delay"
 )
 
-// redisProducer Redis Stream 生产者实现
-type redisProducer struct {
+// producer Redis Stream 生产者实现
+type producer struct {
 	client       *redis.Client
 	pollInterval time.Duration
 	closed       bool
-	managed      bool // true 表示 client 是由 mq 创建的，Close 时需要释放
 	mu           sync.Mutex
 	stopCh       chan struct{}
 	wg           sync.WaitGroup
@@ -31,22 +31,12 @@ type redisProducer struct {
 }
 
 // 编译时检查接口实现
-var _ Producer = (*redisProducer)(nil)
+var _ mq.Producer = (*producer)(nil)
 
-func newRedisProducer(cfg *RedisConfig) (*redisProducer, error) {
-	var client *redis.Client
-	var managed bool
-
-	if cfg.Client != nil {
-		client = cfg.Client
-		managed = false
-	} else {
-		client = redis.NewClient(&redis.Options{
-			Addr:     cfg.Addr,
-			Password: cfg.Password,
-			DB:       cfg.DB,
-		})
-		managed = true
+// NewProducer 创建 Redis 生产者
+func NewProducer(cfg *Config) (mq.Producer, error) {
+	if cfg.Client == nil {
+		return nil, fmt.Errorf("redis-mq: Client is required in config")
 	}
 
 	pollInterval := defaultDelayPollInterval
@@ -54,21 +44,20 @@ func newRedisProducer(cfg *RedisConfig) (*redisProducer, error) {
 		pollInterval = time.Duration(cfg.DelayPollIntervalMs) * time.Millisecond
 	}
 
-	return &redisProducer{
-		client:       client,
+	return &producer{
+		client:       cfg.Client,
 		pollInterval: pollInterval,
 		stopCh:       make(chan struct{}),
 		delayTopics:  make(map[string]struct{}),
-		managed:      managed,
 	}, nil
 }
 
 // SendMessage 普通消息 — XADD 到 stream
-func (p *redisProducer) SendMessage(ctx context.Context, msg *Message) (*SendResult, error) {
+func (p *producer) SendMessage(ctx context.Context, msg *mq.Message) (*mq.SendResult, error) {
 	p.mu.Lock()
 	if p.closed {
 		p.mu.Unlock()
-		return nil, ErrAlreadyClosed
+		return nil, mq.ErrAlreadyClosed
 	}
 	p.mu.Unlock()
 
@@ -81,15 +70,15 @@ func (p *redisProducer) SendMessage(ctx context.Context, msg *Message) (*SendRes
 	if err != nil {
 		return nil, fmt.Errorf("mq: redis XADD failed: %w", err)
 	}
-	return &SendResult{MessageID: id}, nil
+	return &mq.SendResult{MessageID: id}, nil
 }
 
 // SendDelayMessage 延时消息 — 写入 sorted set，后台轮询到期后 XADD
-func (p *redisProducer) SendDelayMessage(ctx context.Context, msg *Message, delay time.Duration) (*SendResult, error) {
+func (p *producer) SendDelayMessage(ctx context.Context, msg *mq.Message, delay time.Duration) (*mq.SendResult, error) {
 	p.mu.Lock()
 	if p.closed {
 		p.mu.Unlock()
-		return nil, ErrAlreadyClosed
+		return nil, mq.ErrAlreadyClosed
 	}
 	p.mu.Unlock()
 
@@ -115,11 +104,11 @@ func (p *redisProducer) SendDelayMessage(ctx context.Context, msg *Message, dela
 	// 确保该 topic 的延时轮询协程已启动
 	p.ensureDelayPoller(msg.Topic)
 
-	return &SendResult{MessageID: msgID}, nil
+	return &mq.SendResult{MessageID: msgID}, nil
 }
 
 // SendOrderMessage 顺序消息 — Redis Stream 单 stream 天然保序，直接 XADD
-func (p *redisProducer) SendOrderMessage(ctx context.Context, msg *Message, shardingKey string) (*SendResult, error) {
+func (p *producer) SendOrderMessage(ctx context.Context, msg *mq.Message, shardingKey string) (*mq.SendResult, error) {
 	// Redis Stream 天然保证单 stream 内消息有序
 	// 为保证相同 shardingKey 的消息在同一 stream 中，将 shardingKey 追加到 topic 作为后缀
 	originalTopic := msg.Topic
@@ -130,24 +119,21 @@ func (p *redisProducer) SendOrderMessage(ctx context.Context, msg *Message, shar
 }
 
 // Close 关闭生产者
-func (p *redisProducer) Close() error {
+func (p *producer) Close() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.closed {
-		return ErrAlreadyClosed
+		return mq.ErrAlreadyClosed
 	}
 	p.closed = true
 	close(p.stopCh)
 	p.wg.Wait()
-
-	if p.managed {
-		return p.client.Close()
-	}
+	// 不关闭 client，由用户自行管理
 	return nil
 }
 
 // ensureDelayPoller 确保指定 topic 的延时轮询协程已启动
-func (p *redisProducer) ensureDelayPoller(topic string) {
+func (p *producer) ensureDelayPoller(topic string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if _, ok := p.delayTopics[topic]; ok {
@@ -160,7 +146,7 @@ func (p *redisProducer) ensureDelayPoller(topic string) {
 }
 
 // pollDelayMessages 轮询 sorted set 中到期的延时消息并 XADD 到 stream
-func (p *redisProducer) pollDelayMessages(topic string) {
+func (p *producer) pollDelayMessages(topic string) {
 	defer p.wg.Done()
 
 	zsetKey := topic + delayZSetSuffix
@@ -178,7 +164,7 @@ func (p *redisProducer) pollDelayMessages(topic string) {
 }
 
 // transferDueMessages 将到期的延时消息从 sorted set 转移到 stream
-func (p *redisProducer) transferDueMessages(zsetKey, topic string) {
+func (p *producer) transferDueMessages(zsetKey, topic string) {
 	ctx := context.Background()
 	now := float64(time.Now().UnixMilli())
 
@@ -211,7 +197,7 @@ func (p *redisProducer) transferDueMessages(zsetKey, topic string) {
 			continue
 		}
 
-		var msg Message
+		var msg mq.Message
 		if err := json.Unmarshal([]byte(member[idx+1:]), &msg); err != nil {
 			continue
 		}
@@ -224,20 +210,4 @@ func (p *redisProducer) transferDueMessages(zsetKey, topic string) {
 			Values: values,
 		})
 	}
-}
-
-// buildRedisValues 将 Message 转换为 Redis Stream 的 key-value 对
-func buildRedisValues(msg *Message) map[string]interface{} {
-	values := map[string]interface{}{
-		"body": string(msg.Body),
-	}
-	if msg.Key != "" {
-		values["key"] = msg.Key
-	}
-	if len(msg.Properties) > 0 {
-		if data, err := json.Marshal(msg.Properties); err == nil {
-			values["properties"] = string(data)
-		}
-	}
-	return values
 }

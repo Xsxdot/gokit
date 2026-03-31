@@ -9,12 +9,12 @@ import (
 type ClientAuthComponent struct {
 	key    string
 	config config.JwtConfig
-	entity *ClientAuth
+	entity **ClientAuth
 }
 
 // NewClientAuthComponent 创建 ClientAuth 组件
-func NewClientAuthComponent(key string) *ClientAuthComponent {
-	return &ClientAuthComponent{key: key}
+func NewClientAuthComponent(key string, entity **ClientAuth) *ClientAuthComponent {
+	return &ClientAuthComponent{key: key, entity: entity}
 }
 
 func (c *ClientAuthComponent) Name() string      { return "client-auth" }
@@ -23,7 +23,7 @@ func (c *ClientAuthComponent) ConfigPtr() any    { return &c.config }
 func (c *ClientAuthComponent) EntityPtr() any    { return c.entity }
 func (c *ClientAuthComponent) Start(ctx context.Context, cfg any) error {
 	conf := cfg.(*config.JwtConfig)
-	c.entity = NewClientAuth([]byte(conf.ClientSecret))
+	*c.entity = NewClientAuth([]byte(conf.ClientSecret))
 	return nil
 }
 func (c *ClientAuthComponent) Stop() error { return nil }

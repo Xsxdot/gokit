@@ -10,12 +10,12 @@ import (
 type UserAuthComponent struct {
 	key    string
 	config config.JwtConfig
-	entity *UserAuth
+	entity **UserAuth
 }
 
 // NewUserAuthComponent 创建 UserAuth 组件
-func NewUserAuthComponent(key string) *UserAuthComponent {
-	return &UserAuthComponent{key: key}
+func NewUserAuthComponent(key string, entity **UserAuth) *UserAuthComponent {
+	return &UserAuthComponent{key: key, entity: entity}
 }
 
 func (c *UserAuthComponent) Name() string      { return "user-auth" }
@@ -24,7 +24,7 @@ func (c *UserAuthComponent) ConfigPtr() any    { return &c.config }
 func (c *UserAuthComponent) EntityPtr() any    { return c.entity }
 func (c *UserAuthComponent) Start(ctx context.Context, cfg any) error {
 	conf := cfg.(*config.JwtConfig)
-	c.entity = NewUserAuth([]byte(conf.Secret), time.Duration(conf.ExpireTime)*time.Second)
+	*c.entity = NewUserAuth([]byte(conf.Secret), time.Duration(conf.ExpireTime)*time.Second)
 	return nil
 }
 func (c *UserAuthComponent) Stop() error { return nil }
