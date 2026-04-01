@@ -8,13 +8,13 @@ import (
 )
 
 type CacheComponent struct {
-	rdb    *redis.Client
+	rdb    **redis.Client
 	entity **cache.Cache
 }
 
 // NewCacheComponent 创建 Cache 组件
-// rdb: 依赖的 Redis 客户端（需要先启动 RDBComponent）
-func NewCacheComponent(rdb *redis.Client, entity **cache.Cache) *CacheComponent {
+// rdb: 依赖的 Redis 客户端指针（需要先启动 RDBComponent，传入双重指针以追踪赋值）
+func NewCacheComponent(rdb **redis.Client, entity **cache.Cache) *CacheComponent {
 	return &CacheComponent{rdb: rdb, entity: entity}
 }
 
@@ -23,7 +23,7 @@ func (c *CacheComponent) ConfigKey() string { return "" }
 func (c *CacheComponent) ConfigPtr() any    { return nil }
 func (c *CacheComponent) EntityPtr() any    { return c.entity }
 func (c *CacheComponent) Start(ctx context.Context, cfg any) error {
-	entity := InitCache(c.rdb)
+	entity := InitCache(*c.rdb)
 	*c.entity = entity
 	return nil
 }

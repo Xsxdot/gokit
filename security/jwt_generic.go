@@ -16,9 +16,9 @@ import (
 type JwtAuth[T jwt.Claims] struct {
 	secret       []byte
 	expireTime   time.Duration
-	newClaims    func() T                  // Claims 构造函数，用于 ParseWithClaims
-	contextKey   any                       // Context 存储键
-	saveToLocals func(c *fiber.Ctx, claims T) // Locals 存储回调
+	newClaims    func() T                                     // Claims 构造函数，用于 ParseWithClaims
+	contextKey   any                                          // Context 存储键
+	saveToLocals func(c *fiber.Ctx, claims T)                 // Locals 存储回调
 	setExpiry    func(claims T, duration time.Duration) int64 // 设置过期时间回调
 }
 
@@ -101,4 +101,3 @@ func (a *JwtAuth[T]) GetClaimsFromCtx(ctx context.Context) (T, error) {
 	}
 	return claims, nil
 }
-

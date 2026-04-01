@@ -34,18 +34,11 @@ type producer struct {
 var _ mq.Producer = (*producer)(nil)
 
 // NewProducer 创建 Redis 生产者
-func NewProducer(cfg *Config) (mq.Producer, error) {
-	if cfg.Client == nil {
-		return nil, fmt.Errorf("redis-mq: Client is required in config")
-	}
-
+func NewProducer(rdb *redis.Client) (mq.Producer, error) {
 	pollInterval := defaultDelayPollInterval
-	if cfg.DelayPollIntervalMs > 0 {
-		pollInterval = time.Duration(cfg.DelayPollIntervalMs) * time.Millisecond
-	}
 
 	return &producer{
-		client:       cfg.Client,
+		client:       rdb,
 		pollInterval: pollInterval,
 		stopCh:       make(chan struct{}),
 		delayTopics:  make(map[string]struct{}),

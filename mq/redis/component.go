@@ -2,22 +2,21 @@ package redis
 
 import (
 	"context"
-	"errors"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/xsxdot/gokit/mq"
 )
 
 // Component Redis MQ 组件
 type Component struct {
-	key      string
-	config   Config
+	rdb      **redis.Client
 	producer *mq.Producer // 可选：回填 Producer
 	consumer *mq.Consumer // 可选：回填 Consumer
 }
 
 // NewComponent 创建 Redis MQ 组件
-func NewComponent(key string) *Component {
-	return &Component{key: key}
+func NewComponent(rdb **redis.Client) *Component {
+	return &Component{rdb: rdb}
 }
 
 // WithProducer 设置 Producer 回填目标（可选）
@@ -34,25 +33,20 @@ func (c *Component) WithConsumer(entity *mq.Consumer) *Component {
 }
 
 func (c *Component) Name() string      { return "redis-mq" }
-func (c *Component) ConfigKey() string { return c.key }
-func (c *Component) ConfigPtr() any    { return &c.config }
+func (c *Component) ConfigKey() string { return "" }
+func (c *Component) ConfigPtr() any    { return nil }
 func (c *Component) EntityPtr() any    { return nil } // 多实体场景不使用单指针
 
 func (c *Component) Start(ctx context.Context, cfg any) error {
-	conf := cfg.(*Config)
-	// Client 必须在配置中提供
-	if conf.Client == nil {
-		return errors.New("redis-mq: Client is required in config")
-	}
 	if c.producer != nil {
-		p, err := NewProducer(conf)
+		p, err := NewProducer(*c.rdb)
 		if err != nil {
 			return err
 		}
 		*c.producer = p
 	}
 	if c.consumer != nil {
-		cons, err := NewConsumer(conf)
+		cons, err := NewConsumer(*c.rdb)
 		if err != nil {
 			return err
 		}

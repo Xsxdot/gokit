@@ -39,23 +39,11 @@ type consumer struct {
 var _ mq.Consumer = (*consumer)(nil)
 
 // NewConsumer 创建 Redis 消费者
-func NewConsumer(cfg *Config) (mq.Consumer, error) {
-	if cfg.Client == nil {
-		return nil, fmt.Errorf("redis-mq: Client is required in config")
-	}
-
+func NewConsumer(rdb *redis.Client) (mq.Consumer, error) {
 	blockTimeout := defaultBlockTimeout
-	if cfg.BlockTimeoutMs > 0 {
-		blockTimeout = time.Duration(cfg.BlockTimeoutMs) * time.Millisecond
-	}
-
 	pendingRetry := defaultPendingRetryInterval
-	if cfg.PendingRetryIntervalSec > 0 {
-		pendingRetry = time.Duration(cfg.PendingRetryIntervalSec) * time.Second
-	}
-
 	return &consumer{
-		client:               cfg.Client,
+		client:               rdb,
 		blockTimeout:         blockTimeout,
 		pendingRetryInterval: pendingRetry,
 		stopCh:               make(chan struct{}),
