@@ -534,7 +534,7 @@ func (s *AliyunService) AppendFile(ctx context.Context, objectKey string, reader
 		return position, s.err.New("追加文件到阿里云OSS失败", err).WithTraceID(ctx).ToLog(s.log.Entry)
 	}
 	if result == nil {
-		return position, nil
+		return position, s.err.New("追加文件到阿里云OSS返回空结果", nil).WithTraceID(ctx).ToLog(s.log.Entry)
 	}
 	return result.NextPosition, nil
 }
