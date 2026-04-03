@@ -134,6 +134,27 @@ func TestValidate_Email(t *testing.T) {
 	}
 }
 
+// optional 为 gokit 注册的占位校验，与 omitempty 不同：不跳过后续规则（如 optional,max=3）
+func TestValidate_OptionalTag(t *testing.T) {
+	type M struct {
+		X string `json:"x" validate:"optional" comment:"可空"`
+		Y string `json:"y" validate:"optional,max=3" comment:"可空有上限"`
+		P *string `json:"p" validate:"optional" comment:"可空指针"`
+	}
+	if valid, msg := IsValid(M{}); !valid {
+		t.Errorf("empty optional fields: %s", msg)
+	}
+	if valid, msg := IsValid(M{P: nil}); !valid {
+		t.Errorf("nil pointer optional: %s", msg)
+	}
+	if valid, msg := IsValid(M{X: "a", Y: "ab"}); !valid {
+		t.Errorf("within max: %s", msg)
+	}
+	if valid, _ := IsValid(M{X: "a", Y: "abcd"}); valid {
+		t.Error("expect Y over max to fail")
+	}
+}
+
 func TestValidate_MultipleErrors(t *testing.T) {
 	model := TestModel{
 		// Name 缺失 (required)

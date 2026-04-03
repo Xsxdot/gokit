@@ -73,6 +73,13 @@ func newValidator() (*validator.Validate, ut.Translator) {
 	// 创建验证器实例
 	v := validator.New()
 
+	// optional：占位标签；须 callValidationEvenIfNull，否则 nil 指针字段会直接报校验失败且不会执行本函数
+	if err := v.RegisterValidation("optional", func(_ validator.FieldLevel) bool {
+		return true
+	}, true); err != nil {
+		panic("gokit/utils: register optional validation: " + err.Error())
+	}
+
 	// 注册函数，获取struct字段中的中文标签
 	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
 		name := strings.SplitN(fld.Tag.Get("comment"), ",", 2)[0]

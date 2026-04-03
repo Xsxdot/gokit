@@ -11,12 +11,29 @@ import (
 	"go.uber.org/zap"
 )
 
-func GetApp() *fiber.App {
-	app := fiber.New(
-		fiber.Config{
-			BodyLimit:    10 * 1024 * 1024,
-			ErrorHandler: ErrHandler,
-		})
+// AppConfig 为 Fiber 应用级可选行为。当前字段用于反向代理 / CDN 场景下客户端 IP（c.IP 等）的可信来源。
+//
+// 零值表示不启用 TrustedProxyCheck，与 Fiber 默认一致。
+// 若服务部署在 Cloudflare、Nginx 等之后且依赖真实客户端 IP，应显式设置 EnableTrustedProxyCheck 及 TrustedProxies、ProxyHeader；
+// TrustedProxies 请配置为实际反代或 CDN 出口网段，避免滥用 0.0.0.0/0 导致任意来源伪造 IP。
+type AppConfig struct {
+	EnableTrustedProxyCheck bool   `json:"enableTrustedProxyCheck"`
+	TrustedProxies          string `json:"trustedProxies"`
+	ProxyHeader             string `json:"proxyHeader"`
+}
+
+// NewApp 使用 cfg 创建 Fiber 应用（默认 BodyLimit、统一 ErrorHandler、CORS、recover、健康检查、静态资源等）。
+func NewApp(cfg AppConfig) *fiber.App {
+	fc := fiber.Config{
+		BodyLimit:    10 * 1024 * 1024,
+		ErrorHandler: ErrHandler,
+	}
+	if cfg.EnableTrustedProxyCheck {
+		fc.EnableTrustedProxyCheck = true
+		fc.TrustedProxies = strings.Split(cfg.TrustedProxies, ",")
+		fc.ProxyHeader = cfg.ProxyHeader
+	}
+	app := fiber.New(fc)
 	app.Use(Cors())
 	app.Use(recover2.New(recover2.Config{
 		Next:             nil,
@@ -31,6 +48,11 @@ func GetApp() *fiber.App {
 	RegisterStaticFiles(app, "./web", "/")
 
 	return app
+}
+
+// GetApp 等价于 NewApp(AppConfig{})：不启用信任代理，与 Fiber 默认 IP 语义一致。
+func GetApp() *fiber.App {
+	return NewApp(AppConfig{})
 }
 
 // RegisterStaticFiles 配置静态文件服务，用于提供Vue打包的前端页面

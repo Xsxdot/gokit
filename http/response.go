@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"io"
 	stdhttp "net/http"
 
 	"github.com/go-resty/resty/v2"
@@ -42,6 +43,15 @@ func (r *Response) StatusCode() int {
 		return 0
 	}
 	return r.raw.StatusCode()
+}
+
+// RawBodyStream 返回原始 HTTP 响应体流；仅在请求侧调用了 SetDoNotParseResponse(true) 时有效。
+// 调用方必须在读取结束后关闭返回的 ReadCloser，否则会造成连接泄漏。
+func (r *Response) RawBodyStream() io.ReadCloser {
+	if r.raw == nil || r.raw.RawResponse == nil || r.raw.RawResponse.Body == nil {
+		return nil
+	}
+	return r.raw.RawResponse.Body
 }
 
 // Header 获取响应头

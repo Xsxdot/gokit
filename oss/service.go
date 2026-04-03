@@ -161,7 +161,7 @@ func (s *AliyunService) downloadDataClient(objectKey string) *oss.Client {
 
 // GetUploadToken 获取上传令牌
 func (s *AliyunService) GetUploadToken(ctx context.Context, policy *UploadPolicy) (interface{}, error) {
-	s.log.WithTrace(ctx).WithField("policy", policy).Info("获取阿里云上传令牌")
+	// s.log.WithTrace(ctx).WithField("policy", policy).Info("获取阿里云上传令牌")
 
 	cred, err := s.provider.GetCredentials(ctx)
 	if err != nil {
@@ -264,7 +264,7 @@ func (s *AliyunService) GetUploadToken(ctx context.Context, policy *UploadPolicy
 // opts: 图片处理选项（可选），如果为nil则返回原图
 // expire: URL过期时间
 func (s *AliyunService) GetPreviewUrl(ctx context.Context, objectKey string, opts *ImageProcessOptions, expire time.Duration) (string, error) {
-	s.log.WithTrace(ctx).WithField("objectKey", objectKey).WithField("opts", opts).Debug("获取阿里云文件预览URL")
+	// s.log.WithTrace(ctx).WithField("objectKey", objectKey).WithField("opts", opts).Debug("获取阿里云文件预览URL")
 
 	// 保证objectKey不以"/"开头
 	objectKey = s.ValidAndProcessOssKey(objectKey)
@@ -384,7 +384,7 @@ func (s *AliyunService) buildImageProcessParam(opts *ImageProcessOptions) string
 
 // GetDownloadUrl 获取下载URL
 func (s *AliyunService) GetDownloadUrl(ctx context.Context, objectKey string, name string, speedLimit int64, expire time.Duration) (string, error) {
-	s.log.WithTrace(ctx).WithField("objectKey", objectKey).Info("获取阿里云文件下载URL")
+	// s.log.WithTrace(ctx).WithField("objectKey", objectKey).Info("获取阿里云文件下载URL")
 
 	// 保证objectKey不以"/"开头
 	objectKey = s.ValidAndProcessOssKey(objectKey)
@@ -418,7 +418,7 @@ func (s *AliyunService) GetDownloadUrl(ctx context.Context, objectKey string, na
 
 // DownloadFile 直接下载文件内容
 func (s *AliyunService) DownloadFile(ctx context.Context, objectKey string) (io.ReadCloser, error) {
-	s.log.WithTrace(ctx).WithField("objectKey", objectKey).Info("直接下载阿里云文件")
+	// s.log.WithTrace(ctx).WithField("objectKey", objectKey).Info("直接下载阿里云文件")
 
 	// 保证objectKey不以"/"开头
 	objectKey = s.ValidAndProcessOssKey(objectKey)
@@ -442,7 +442,7 @@ func (s *AliyunService) DownloadFile(ctx context.Context, objectKey string) (io.
 
 // DeleteFile 直接删除文件
 func (s *AliyunService) DeleteFile(ctx context.Context, objectKey string) error {
-	s.log.WithTrace(ctx).WithField("objectKey", objectKey).Info("直接删除阿里云文件")
+	// s.log.WithTrace(ctx).WithField("objectKey", objectKey).Info("直接删除阿里云文件")
 
 	//.保证objectKey不以"/"开头
 	objectKey = s.ValidAndProcessOssKey(objectKey)
@@ -492,7 +492,7 @@ func (s *AliyunService) ValidCallback(ctx context.Context, r *fiber.Ctx) bool {
 
 // UploadFile 上传文件
 func (s *AliyunService) UploadFile(ctx context.Context, objectKey string, reader io.Reader) error {
-	s.log.WithTrace(ctx).WithField("objectKey", objectKey).Info("上传文件到阿里云OSS")
+	// s.log.WithTrace(ctx).WithField("objectKey", objectKey).Info("上传文件到阿里云OSS")
 
 	objectKey = s.ValidAndProcessOssKey(objectKey)
 
@@ -515,7 +515,7 @@ func (s *AliyunService) UploadFile(ctx context.Context, objectKey string, reader
 // AppendFile 向已存在或可创建的追加写对象追加一段内容（position 为 0 时创建追加对象）
 // 返回下一次追加应使用的 position（即当前对象总长度）
 func (s *AliyunService) AppendFile(ctx context.Context, objectKey string, reader io.Reader, position int64) (int64, error) {
-	s.log.WithTrace(ctx).WithField("objectKey", objectKey).WithField("position", position).Debug("追加文件到阿里云OSS")
+	// s.log.WithTrace(ctx).WithField("objectKey", objectKey).WithField("position", position).Debug("追加文件到阿里云OSS")
 
 	objectKey = s.ValidAndProcessOssKey(objectKey)
 
@@ -541,7 +541,7 @@ func (s *AliyunService) AppendFile(ctx context.Context, objectKey string, reader
 
 // GetThumbnailUrl 获取图片缩略图URL
 func (s *AliyunService) GetThumbnailUrl(ctx context.Context, objectKey string, width, height int, expire time.Duration) (string, error) {
-	s.log.WithTrace(ctx).WithField("objectKey", objectKey).WithField("width", width).WithField("height", height).Info("获取图片缩略图URL")
+	// s.log.WithTrace(ctx).WithField("objectKey", objectKey).WithField("width", width).WithField("height", height).Info("获取图片缩略图URL")
 
 	// 保证objectKey不以"/"开头
 	objectKey = s.ValidAndProcessOssKey(objectKey)
@@ -581,7 +581,7 @@ func (s *AliyunService) GetThumbnailUrl(ctx context.Context, objectKey string, w
 
 // GetVideoCoverUrl 获取视频封面URL
 func (s *AliyunService) GetVideoCoverUrl(ctx context.Context, objectKey string, timeSeconds int, expire time.Duration) (string, error) {
-	s.log.WithTrace(ctx).WithField("objectKey", objectKey).WithField("timeSeconds", timeSeconds).Info("获取视频封面URL")
+	// s.log.WithTrace(ctx).WithField("objectKey", objectKey).WithField("timeSeconds", timeSeconds).Info("获取视频封面URL")
 
 	// 保证objectKey不以"/"开头
 	objectKey = s.ValidAndProcessOssKey(objectKey)

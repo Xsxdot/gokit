@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -45,8 +44,8 @@ func NewApiLogger(config Config) fiber.Handler {
 		if err != nil {
 			errc := errorc.ParseError(err)
 			errc.ToLog(log.WithTrace(c.UserContext()).GetLogger())
-			log = log.WithField("Err", errc.RootCause())
-			fmt.Println(errc.Error())
+			// 禁止 log = log.WithField("Err", …)：会污染闭包共享的 log，后续请求即使成功也会在「请求处理完毕」中带上前一次的 Err。
+			log.WithField("Err", errc.RootCause()).WithTrace(c.UserContext()).Warn("API handler 返回错误")
 		}
 
 		return err

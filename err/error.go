@@ -543,6 +543,26 @@ func IsNotFound(err error) bool {
 	return isNotFoundMessage(err.Error())
 }
 
+// IsNoAuth reports whether err is or wraps an *Error with ErrorCodeNoAuth (HTTP 401 未授权).
+func IsNoAuth(err error) bool {
+	if err == nil {
+		return false
+	}
+	var e *Error
+	if errors.As(err, &e) {
+		if e.ErrorCode == ErrorCodeNoAuth {
+			return true
+		}
+		if e.Cause != nil {
+			if ce, ok := e.Cause.(*Error); ok {
+				return IsNoAuth(ce)
+			}
+		}
+		return false
+	}
+	return false
+}
+
 // trimFilename 截断绝对路径，只保留项目相对路径，减少日志噪音
 func trimFilename(fullPath string) string {
 	if fullPath == "" {

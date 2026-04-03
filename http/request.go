@@ -64,6 +64,12 @@ func (r *Request) Headers(headers map[string]string) *Request {
 	return r
 }
 
+// SetDoNotParseResponse 为 true 时不将响应体读入内存，需通过 Response.RawBodyStream 读取并关闭。
+func (r *Request) SetDoNotParseResponse(v bool) *Request {
+	r.restyReq.SetDoNotParseResponse(v)
+	return r
+}
+
 // Cookie 设置单个Cookie
 func (r *Request) Cookie(key, value string) *Request {
 	r.restyReq.SetCookie(&http_cookie{Name: key, Value: value})
